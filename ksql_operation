@@ -1,0 +1,56 @@
+# 進入 kafka container
+docker exec -it kafka bash
+
+# 建立 topic 名為 temperature
+kafka-topics.sh --create --zookeeper zookeeper:2181 --topic temperature --partitions 1 --replication-factor 1
+
+# 建立 topic 名為 humidity
+kafka-topics.sh --create --zookeeper zookeeper:2181 --topic humidity --partitions 1 --replication-factor 1
+
+# 列出有哪些 topic
+kafka-topics.sh --list --zookeeper zookeeper:2181
+
+# 檢視 temperature topic 狀態 
+kafka-topics.sh --describe --zookeeper zookeeper:2181 --topic temperature
+
+# 刪除 topic
+kafka-topics.sh --delete --zookeeper zookeeper:2181 --topic temperature
+
+# 進入ksql-cli container
+docker exec -it ksql-cli bash
+
+# 啟動 ksql
+ksql http://ksql-server:8088
+
+# 查看有哪些 topic
+SHOW TOPICS;
+# 檢視 topic=temperature 的資料
+PRINT 'temperature';
+# 檢視 topic=humidity 的資料
+PRINT 'humidity';
+
+# 建立一個 stream 為 temperature_stream
+CREATE STREAM temperature_stream (device_id varchar, timestamp varchar, temperature double) WITH
+(kafka_topic='temperature', value_format='json');
+
+# 建立一個 stream 為 humidity_stream
+CREATE STREAM humidity_stream (device_id varchar, timestamp varchar, humidity integer) WITH
+(kafka_topic='humidity', value_format='json');
+
+# 查看所有 stream
+SHOW STREAMS;
+
+# 查看 temperature_stream 欄位資訊
+DESCRIBE temperature_stream;
+
+# 查看 humidity_stream 欄位資訊
+DESCRIBE humidity_stream;
+
+#建立 stream 名為 temp_humidity_enriched
+#內容是將 temperature_stream 和 humidity_stream 做 JOIN
+CREATE STREAM temp_humidity_enriched AS
+SELECT t.device_id, t.timestamp, temperature, humidity
+FROM temperature_stream t
+  JOIN humidity_stream h
+  WITHIN 4 HOURS
+  ON t.timestamp = h.timestamp;

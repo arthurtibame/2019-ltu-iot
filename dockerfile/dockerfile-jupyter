@@ -1,0 +1,4 @@
+#指定基底文件為jupyter/base-notebook
+FROM yangty10/news_jupyter-tutorial
+RUN pip install --upgrade pip
+RUN pip install kafka pymysql pymongo
